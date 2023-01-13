@@ -5,7 +5,10 @@
 
 #include <HX711_ADC.h>
 #include <EEPROM.h>
+#include <SPI.h>
+#include <SD.h>
 
+const int chipSelect = 4;
 //pins:
 const int HX711_dout = 8; //mcu > HX711 dout pin
 const int HX711_sck = 9; //mcu > HX711 sck pin
@@ -19,16 +22,22 @@ long t;
 void setup() {
   Serial.begin(57600); delay(10);
   Serial.println();
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    return;
+  }
+  Serial.println("card initialized.");
   Serial.println("Measuring in 10 seconds");
   delay(10000);
 
   LoadCell.begin();
   float calibrationValue; // paste the calibration value here
-  calibrationValue = 696.0; 
+  calibrationValue = 696.0;
 #if defined(ESP8266)|| defined(ESP32)
-  
+
 #endif
-  
+
 
   long stabilizingtime = 2000; // preciscion right after power-up can be improved by adding a few seconds of stabilizing time
   boolean _tare = true; //set this to false if you don't want tare to be performed in the next step
@@ -44,6 +53,7 @@ void setup() {
 }
 
 void loop() {
+  
   static boolean newDataReady = 0;
   const int serialPrintInterval = 0; //increase value to slow down serial print activity
 
@@ -53,11 +63,27 @@ void loop() {
   // get smoothed value from the dataset:
   if (newDataReady) {
     if (millis() > t + serialPrintInterval) {
+
       float i = LoadCell.getData();
-      Serial.print("Load_cell output val: ");
+      //      Serial.print("Load_cell output val: ");
       Serial.println(i);
       newDataReady = 0;
       t = millis();
+      String dataString = "";
+      dataString = String(i);
+      File dataFile = SD.open("datalog.csv", FILE_WRITE);
+
+      // if the file is available, write to it:
+      if (dataFile) {
+        dataFile.println(dataString);
+        dataFile.close();
+        // print to the serial port too:
+        Serial.println(dataString);
+      }
+      // if the file isn't open, pop up an error:
+      else {
+        Serial.println("error opening datalog.txt");
+      }
     }
   }
 
