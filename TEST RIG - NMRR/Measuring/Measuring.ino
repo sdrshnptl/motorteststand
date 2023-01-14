@@ -70,8 +70,16 @@ void loop() {
       newDataReady = 0;
       t = millis();
       String dataString = "";
-      dataString = String(i);
-      File dataFile = SD.open("datalog.csv", FILE_WRITE);
+      static bool add_header = 1;
+      if(add_header == 1)
+      {
+        add_header = 0;
+        dataString = "time,value\r\n";
+      }
+      dataString += millis(); 
+      dataString += String(i);
+      dataString += "\r\n";
+      File dataFile = SD.open("/datalog.csv", FILE_WRITE);
 
       // if the file is available, write to it:
       if (dataFile) {
